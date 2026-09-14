@@ -1,0 +1,24 @@
+{
+  "name": "ghion-javascript-example",
+  "version": "1.0.0",
+  "description": "JavaScript implementation of Ghion USSD Push without SDK",
+  "main": "ussd-push.js",
+  "scripts": {
+    "test": "node ussd-push.js"
+  },
+  "keywords": [
+    "ghion",
+    "ussd",
+    "payment",
+    "yayawallet",
+    "javascript"
+  ],
+  "author": "",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "dependencies": {
+    "dotenv": "^16.0.0"
+  }
+}
