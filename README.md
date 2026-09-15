@@ -80,11 +80,150 @@ The script includes helpful error messages for common issues:
 - **Authentication errors**: Invalid API credentials
 - **Network errors**: Connection issues
 
-## API Endpoints Used
+## API Endpoints and Request/Response Formats
 
-- `POST /checkout/initialize` - Initialize payment session
-- `POST /checkout/{paymentId}/pay/yayawallet` - Submit USSD push payment
-- `GET /checkout/{paymentId}` - Get payment status
+### 1. Initialize Payment Session
+
+**Endpoint:** `POST /checkout/initialize`
+
+**Request Format:**
+```json
+{
+  "amount": 10,
+  "currency": "ETB",
+  "reference": "test_1789464322522",
+  "description": "Payment description",
+  "webhook_url": "https://your-domain.com/webhook",
+  "return_url": "https://your-domain.com/success",
+  "cancel_url": "https://your-domain.com/cancel",
+  "metadata": {
+    "customer_id": "12345",
+    "order_id": "order_123"
+  }
+}
+```
+
+**Required Fields:**
+- `amount` (number): Payment amount
+- `currency` (string): Currency code (default: "ETB")
+- `reference` (string): Unique payment reference
+
+**Optional Fields:**
+- `description` (string): Payment description
+- `webhook_url` (string): URL for payment status notifications
+- `return_url` (string): Redirect URL after successful payment
+- `cancel_url` (string): Redirect URL after cancelled payment
+- `metadata` (object): Additional custom data
+
+**Response Format:**
+```json
+{
+  "id": "01a0a462-a864-7f3a-9915-abe214663ff6",
+  "amount": 10,
+  "currency": "ETB",
+  "reference": "test_1789464322522",
+  "status": "pending",
+  "available_channels": [
+    {
+      "name": "YaYa Wallet",
+      "id": "yayawallet"
+    },
+    {
+      "name": "Card",
+      "id": "card"
+    }
+  ],
+  "created_at": "2026-09-14T12:00:00Z"
+}
+```
+
+### 2. Submit USSD Push Payment
+
+**Endpoint:** `POST /checkout/{paymentId}/pay/yayawallet`
+
+**Request Format:**
+```json
+{
+  "phone_number": "0912345678"
+}
+```
+
+**Required Fields:**
+- `phone_number` (string): User's phone number (must be registered with YaYaWallet)
+
+**Response Format:**
+```json
+{
+  "status": "processing",
+  "transaction_id": "01a0a462-a864-7f3a-9915-abe214663ff6",
+  "message": "Payment request sent to YaYa Wallet. Please approve on your phone (*957#).",
+  "phone_number": "0912345678",
+  "channel": "yayawallet"
+}
+```
+
+### 3. Get Payment Status
+
+**Endpoint:** `GET /checkout/{paymentId}`
+
+**Request Parameters:**
+- `paymentId` (path parameter): Payment session ID
+
+**Response Format:**
+```json
+{
+  "id": "01a0a462-a864-7f3a-9915-abe214663ff6",
+  "amount": 10,
+  "currency": "ETB",
+  "reference": "test_1789464322522",
+  "status": "pending",
+  "message": "Payment is pending user approval",
+  "created_at": "2026-09-14T12:00:00Z",
+  "updated_at": "2026-09-14T12:05:00Z"
+}
+```
+
+**Possible Status Values:**
+- `pending`: Payment initiated, awaiting user action
+- `processing`: Payment is being processed
+- `completed`: Payment successfully completed
+- `failed`: Payment failed
+- `cancelled`: Payment was cancelled by user
+
+## Testing Requirements
+
+### Important: KYC Completion Required for Live Testing
+
+To test the real USSD push flow with actual payments, you must:
+
+1. **Complete KYC on Ghion Dashboard**
+   - Log in to your Ghion dashboard at [https://ghion.financial](https://ghion.financial)
+   - Complete the Know Your Customer (KYC) verification process
+   - Submit required documents for identity verification
+
+2. **Go Live**
+   - After KYC approval, request to go live
+   - Your account will be moved from sandbox to production mode
+   - Live transactions will be enabled
+
+3. **Test Phone Number Requirements**
+   - The test phone number must be registered with YaYaWallet
+   - Ensure the phone number can receive USSD prompts
+   - The user should have sufficient balance in their YaYaWallet account
+
+### Sandbox vs Production
+
+**Sandbox Mode:**
+- Use for development and testing
+- No real money transactions
+- Simulated payment flows
+- API endpoints remain the same
+
+**Production Mode:**
+- Requires completed KYC
+- Real money transactions
+- Actual USSD push to phones
+- Same API endpoints with live data
 
 ## Next Steps
 

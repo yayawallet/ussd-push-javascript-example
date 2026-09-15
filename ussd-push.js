@@ -9,6 +9,13 @@
  * 1. Node.js installed
  * 2. Get your API credentials from https://ghion.financial
  * 3. Have a phone number registered with YaYaWallet for testing
+ * 
+ * IMPORTANT: For live testing with real USSD push payments:
+ * - Complete KYC verification on Ghion dashboard
+ * - Request to go live in production mode
+ * - User must have sufficient balance in YaYaWallet account
+ * 
+ * See README.md for complete API request/response formats and testing requirements.
  */
 
 const crypto = require('crypto');
@@ -112,6 +119,30 @@ async function apiRequest(method, path, data = null, customBaseUrl = null, skipA
 
 /**
  * Initialize a new payment session
+ * 
+ * Request Format:
+ * {
+ *   amount: number,
+ *   currency: string (default: "ETB"),
+ *   reference: string,
+ *   description: string (optional),
+ *   webhook_url: string (optional),
+ *   return_url: string (optional),
+ *   cancel_url: string (optional),
+ *   metadata: object (optional)
+ * }
+ * 
+ * Response Format:
+ * {
+ *   id: string,
+ *   amount: number,
+ *   currency: string,
+ *   reference: string,
+ *   status: string,
+ *   available_channels: array,
+ *   created_at: string
+ * }
+ * 
  * @param {object} request - Payment initialization parameters
  * @returns {Promise<object>} Payment initialization response
  */
@@ -132,6 +163,21 @@ async function initializePayment(request) {
 
 /**
  * Submit payment with YaYaWallet (USSD Push)
+ * 
+ * Request Format:
+ * {
+ *   phone_number: string
+ * }
+ * 
+ * Response Format:
+ * {
+ *   status: string,
+ *   transaction_id: string,
+ *   message: string,
+ *   phone_number: string,
+ *   channel: string
+ * }
+ * 
  * @param {string} paymentId - Payment session ID
  * @param {string} phoneNumber - User's phone number
  * @returns {Promise<object>} Payment submission response
@@ -146,6 +192,29 @@ async function submitUSSDPayment(paymentId, phoneNumber) {
 
 /**
  * Get payment status
+ * 
+ * Request Parameters:
+ * - paymentId (path parameter): Payment session ID
+ * 
+ * Response Format:
+ * {
+ *   id: string,
+ *   amount: number,
+ *   currency: string,
+ *   reference: string,
+ *   status: string,
+ *   message: string,
+ *   created_at: string,
+ *   updated_at: string
+ * }
+ * 
+ * Possible Status Values:
+ * - pending: Payment initiated, awaiting user action
+ * - processing: Payment is being processed
+ * - completed: Payment successfully completed
+ * - failed: Payment failed
+ * - cancelled: Payment was cancelled by user
+ * 
  * @param {string} paymentId - Payment session ID
  * @returns {Promise<object>} Payment status response
  */
@@ -177,41 +246,66 @@ async function runUSSDPushTest() {
   try {
     // Step 1: Initialize Payment
     console.log('Step 1: Initializing payment...');
-    const initResponse = await initializePayment({
+    const initRequest = {
       amount: 10,
       currency: 'ETB',
       reference: `test_${Date.now()}`,
       description: 'USSD Push Integration Test',
-    });
+    };
+    console.log('Request:', JSON.stringify(initRequest, null, 2));
+    console.log();
+    
+    const initResponse = await initializePayment(initRequest);
 
     paymentId = initResponse.id;
     console.log(`Payment initialized successfully`);
     console.log(`   Payment ID: ${paymentId}`);
-    console.log(`   Available channels: ${initResponse.available_channels?.map(c => c.name).join(', ') || 'N/A'}\n`);
+    console.log(`   Available channels: ${initResponse.available_channels?.map(c => c.name).join(', ') || 'N/A'}`);
+    console.log(`\nFull API Response:`);
+    console.log(JSON.stringify(initResponse, null, 2));
+    console.log();
 
     // Step 2: Submit USSD Push Payment with YaYaWallet
     console.log('Step 2: Submitting USSD push payment with YaYaWallet...');
     console.log(`   Phone: ${testPhoneNumber}`);
+    
+    const submitRequest = {
+      phone_number: testPhoneNumber,
+    };
+    console.log('Request:', JSON.stringify(submitRequest, null, 2));
+    console.log();
     
     const submitResponse = await submitUSSDPayment(paymentId, testPhoneNumber);
 
     console.log(`USSD push submitted successfully`);
     console.log(`   Status: ${submitResponse.status}`);
     console.log(`   Transaction ID: ${submitResponse.transaction_id}`);
-    console.log(`   Message: ${submitResponse.message}\n`);
+    console.log(`   Message: ${submitResponse.message}`);
+    console.log(`\nFull API Response:`);
+    console.log(JSON.stringify(submitResponse, null, 2));
+    console.log();
 
     // Step 3: Check Payment Status
     console.log('Step 3: Checking payment status...');
+    console.log(`Payment ID: ${paymentId}`);
+    console.log('Request: GET /checkout/' + paymentId);
+    console.log();
+    
     const statusResponse = await getPaymentStatus(paymentId);
     
     console.log(`Payment status retrieved`);
     console.log(`   Status: ${statusResponse.status}`);
     console.log(`   Amount: ${statusResponse.amount} ${statusResponse.currency}`);
-    console.log(`   Reference: ${statusResponse.reference}\n`);
+    console.log(`   Reference: ${statusResponse.reference}`);
+    console.log(`\nFull API Response:`);
+    console.log(JSON.stringify(statusResponse, null, 2));
+    console.log();
 
     // Success Summary
     console.log('=== USSD Push Test Completed Successfully ===');
     console.log('Your JavaScript implementation is working correctly!');
+    console.log('\nRequest and Response formats shown above for documentation purposes.');
+    console.log('See README.md for complete API reference and testing requirements.');
     console.log('\nNext steps:');
     console.log('- Check your phone for YaYaWallet USSD prompt');
     console.log('- Approve the payment to complete the transaction');
